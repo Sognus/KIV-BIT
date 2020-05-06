@@ -1,5 +1,7 @@
 import numpy as np
 
+np.set_printoptions(formatter={'int': hex})
+
 
 class AES128:
 
@@ -30,41 +32,13 @@ class AES128:
             [0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf],
             [0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16]
         ]
-
-        # Reverse-substitution box
-        self.rsbox = [
-            0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3,
-            0x9e, 0x81, 0xf3, 0xd7, 0xfb, 0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f,
-            0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb, 0x54,
-            0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b,
-            0x42, 0xfa, 0xc3, 0x4e, 0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24,
-            0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25, 0x72, 0xf8,
-            0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d,
-            0x65, 0xb6, 0x92, 0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda,
-            0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84, 0x90, 0xd8, 0xab,
-            0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3,
-            0x45, 0x06, 0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1,
-            0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b, 0x3a, 0x91, 0x11, 0x41,
-            0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6,
-            0x73, 0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9,
-            0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e, 0x47, 0xf1, 0x1a, 0x71, 0x1d,
-            0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b,
-            0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0,
-            0xfe, 0x78, 0xcd, 0x5a, 0xf4, 0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07,
-            0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f, 0x60,
-            0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f,
-            0x93, 0xc9, 0x9c, 0xef, 0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5,
-            0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61, 0x17, 0x2b,
-            0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55,
-            0x21, 0x0c, 0x7d]
-
         # Rcon
         self.rcon = [0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
 
     def parse_key(self, key_hex):
         """
         Checks length of key and transforms key into array of 4 byte arrays
-        :param key: Text key in hexadecimal format
+        :param key_hex: Text key in hexadecimal format
         :return: initial byte key
         """
 
@@ -151,7 +125,7 @@ class AES128:
         :return:
         """
         result = bytearray()
-        for i in range(0,4):
+        for i in range(0, 4):
             byte = word1[i] ^ word2[i]
             result.append(byte)
         return result
@@ -163,8 +137,6 @@ class AES128:
         :param key_binary: 4 blocks of 4 bytes (16 bytes = 128bit)
         :return:
         """
-        # TODO: check input data
-
         i = self.Nk
 
         while i < self.Nb * (self.Nr + 1):
@@ -188,30 +160,187 @@ class AES128:
 
         return key_binary
 
+    def parse_data_16(self, data):
+        """
+        Takes block of 16 bytes of data [a1, a2, ..., a16]
+        and transforms it to list of 4 blocks of 4 bytes
+        [[a1,a2,a3,a4], [a5, ..., ...], ..., [..., a16]]
+        :param data: 16 byte data
+        :return:
+        """
+        # Create empty result data
+        parsed_data = list()
+        # We create 4 blocks of 4 byte (16bytes = 128bit)
+        for a in range(0, 4):
+            low = 4 * a
+            high = low + 4
+            parsed_data.append(data[low:high])
+        return parsed_data
+
+    def add_round_key(self, data, key):
+        """
+        Performs XOR between every byte of input data
+        and next 16 bytes of expanded key
+        :param data: block of 16 byte of input data
+        :param key: block of 16 byte of key
+        :return: transformed data
+        """
+        result = list()
+        for x in range(4):
+            w1 = data[x]
+            w2 = key[x]
+            r = self.xor_words(w1, w2)
+            result.append(r)
+        return np.array(result)
+    def sub_bytes_16B(self, data):
+        """
+        Takes input of 4 blocks of 4 bytes (16 Byte)
+        and for every block it performs sub_bytes operation
+        and returns result
+
+        :param data: 16 bytes (4 blocks of 4 bytes)
+        :return: result of sub_bytes
+        """
+        result = list()
+        for i in range(4):
+            transform = self.sub_word(data[i])
+            result.append(transform)
+        return np.array(result)
+
+    def print_16B(self, data16B):
+        """
+        Prints 4 blocks of 4 bytes (16B)
+
+        :param data16B:
+        :return:
+        """
+        for block in data16B:
+            for byte in block:
+                print(hex(byte), end=" ")
+            print()
+
+    def shift_rows(self, data):
+        """
+        Takes data and shifts its rows.
+        shift first row by 0
+        shift second row by 1 to left
+        shift third row by 2 to left
+        shift fourth row by 3 to left
+        :param data:
+        :return:
+        """
+        # Create empty result storage
+        result = list()
+        # Get input data and transpose them to format we need
+        matrix = np.array(data).reshape(4, 4).transpose()
+        # For every block of 4 bytes oi
+        for i in range(0, 4):
+            r = matrix[i]
+            r = np.roll(r, -1 * i)
+            result.append(r)
+        # Transform data back to keep consistent format
+        result = np.array(result).reshape(4, 4).transpose()
+        return result
+
+    def galois(self, a, b):
+        """
+        I dont really understand what this does.
+        It is supposed to do Galois multiplication on GF(2^8)
+        but god knows what this mean
+
+        :param a: byte a
+        :param b: byte b
+        :return: result?
+        """
+        overflow = 0x100
+        mod = 0x11B
+
+        result = 0
+        while b > 0:
+            if b & 1:
+                result ^= a
+            b >>= 1
+            a <<= 1
+            if a & overflow:
+                a ^= mod
+        return result
+
+    def matrix_mul(self, matrix, vector):
+        """
+        Calculates  4*4 matrix *  1*4 vector
+        in galois field
+
+        :param matrix: 4 * 4 matrix
+        :param vector: 1 * 4 vector
+        :return: 1 * 4 vector
+        """
+        result = list()
+
+        for row in range(4):
+            res = 0
+            for cell in range(4):
+                    res = res ^ self.galois(matrix[row][cell], vector[cell])
+            result.append(res)
+        return result
+
+    def mix_colums(self, data):
+        data = np.array(data).reshape(4, 4)
+        matrix = np.array([[2, 3, 1, 1], [1, 2, 3, 1], [1, 1, 2, 3], [3, 1, 1, 2]]).reshape(4, 4)
+
+        res = list()
+        for column in range(0,4):
+            calc = self.matrix_mul(matrix, data[column])
+            res.append(calc)
+
+        return np.array(res).reshape(4,4)
+
     def cipher(self, expanded_key, data):
         """
-        TODO: description
-        TODO: implement
+        Takes block of 16 bytes of data and expanded key and uses
+        them to cipher it
 
         :param expanded_key: array of 43 blocks of 4 bytes
         :param data: 16 bytes of input
-        :return:
+        :return: ciphered 16 bytes
         """
-        pass
+        # Takes first 16 bytes of expanded key ...
+        key_first = expanded_key[0:self.Nb]
+        # ... and peform XOR operation with initial data
+        data = self.add_round_key(data, key_first)
+
+        # Performs algorithm rounds
+        for current_round in range(1, self.Nr):
+            # Performs sub_bytes for 16 byte data
+            data = self.sub_bytes_16B(data)
+            # Shift rows in last three rows of data
+            data = self.shift_rows(data)
+            # Mix columns
+            data = self.mix_colums(data)
+            # Add round key
+            key = expanded_key[current_round*self.Nb:current_round*self.Nb+self.Nb]
+            data = self.add_round_key(data, key)
+
+        # Final sub bytes
+        data = self.sub_bytes_16B(data)
+        # Final Shift rows
+        data = self.shift_rows(data)
+        # Final add round key
+        key_final = expanded_key[-4:]
+        data = self.add_round_key(data, key_final)
+
+        # Return ciphered block
+        return data
 
 
 def test():
     a = AES128()
-    key = "2B7E151628AED2A6ABF7158809CF4F3C"
+    key = "6a6f73656676656e6361736c6164656b"
     key_binary = a.parse_key(key)
     key_expanded = a.expand_key(key_binary)
 
-    for a in key_expanded:
-        for b in a:
-            print(hex(b))
-        input()
-        print("xxx")
-        print()
+    data_hex = "4142434445464748494a4b4c4d4e4f50"
+    data = a.parse_data_16(bytearray.fromhex(data_hex))
+    ciphered = a.cipher(key_expanded, data)
 
 
 if __name__ == '__main__':
