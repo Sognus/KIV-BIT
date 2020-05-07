@@ -1,4 +1,10 @@
+import os
+import sys
+import argparse
 import numpy as np
+import logging
+import binascii
+
 
 np.set_printoptions(formatter={'int': hex})
 
@@ -72,8 +78,6 @@ class AES128:
         # Check if length of translated array is 16
         if len(binary) is not 16:
             return None
-
-        # TODO: vyřešit jak udělat efektivnější split
 
         # Create empty initial key
         initial_key = list()
@@ -189,13 +193,18 @@ class AES128:
         :param data: 16 byte data
         :return:
         """
-        # Create empty result data
+        # If we have less than 16 bytes of data, we pad them with 0
+        while len(data) < 16:
+            data = data + b'\0'
+
+        # Create empty result data - more than 16 bytes are automatically stripped
         parsed_data = list()
         # We create 4 blocks of 4 byte (16bytes = 128bit)
         for a in range(0, 4):
             low = 4 * a
             high = low + 4
             parsed_data.append(data[low:high])
+
         return parsed_data
 
     def add_round_key(self, data, key):
@@ -207,12 +216,13 @@ class AES128:
         :return: transformed data
         """
         result = list()
-        for x in range(4):
+        for x in range(0,4):
             w1 = data[x]
             w2 = key[x]
             r = self.xor_words(w1, w2)
             result.append(r)
         return np.array(result)
+
     def sub_bytes_16B(self, data):
         """
         Takes input of 4 blocks of 4 bytes (16 Byte)
@@ -300,7 +310,7 @@ class AES128:
         for row in range(4):
             res = 0
             for cell in range(4):
-                    res = res ^ self.galois(matrix[row][cell], vector[cell])
+                res = res ^ self.galois(matrix[row][cell], vector[cell])
             result.append(res)
         return result
 
@@ -309,11 +319,11 @@ class AES128:
         matrix = np.array([[2, 3, 1, 1], [1, 2, 3, 1], [1, 1, 2, 3], [3, 1, 1, 2]]).reshape(4, 4)
 
         res = list()
-        for column in range(0,4):
+        for column in range(0, 4):
             calc = self.matrix_mul(matrix, data[column])
             res.append(calc)
 
-        return np.array(res).reshape(4,4)
+        return np.array(res).reshape(4, 4)
 
     def inv_shift_rows(self, data):
         """
@@ -380,14 +390,15 @@ class AES128:
 
     def inv_mix_colums(self, data):
         data = np.array(data).reshape(4, 4)
-        matrix = np.array([[0x0e, 0x0b, 0x0d, 0x09], [0x09, 0x0e, 0x0b, 0x0d], [0x0d, 0x09, 0x0e, 0x0b], [0x0b, 0x0d, 0x09, 0x0e]]).reshape(4, 4)
+        matrix = np.array([[0x0e, 0x0b, 0x0d, 0x09], [0x09, 0x0e, 0x0b, 0x0d], [0x0d, 0x09, 0x0e, 0x0b],
+                           [0x0b, 0x0d, 0x09, 0x0e]]).reshape(4, 4)
 
         res = list()
-        for column in range(0,4):
+        for column in range(0, 4):
             calc = self.matrix_mul(matrix, data[column])
             res.append(calc)
 
-        return np.array(res).reshape(4,4)
+        return np.array(res).reshape(4, 4)
 
     def cipher(self, expanded_key, data):
         """
@@ -412,7 +423,7 @@ class AES128:
             # Mix columns
             data = self.mix_colums(data)
             # Add round key
-            key = expanded_key[current_round*self.Nb:current_round*self.Nb+self.Nb]
+            key = expanded_key[current_round * self.Nb:current_round * self.Nb + self.Nb]
             data = self.add_round_key(data, key)
 
         # Final sub bytes
@@ -442,13 +453,13 @@ class AES128:
         data = self.add_round_key(data, key_last)
 
         # Performs algorithm rounds in reversed order
-        for current_round in range(self.Nr-1, 0, -1):
+        for current_round in range(self.Nr - 1, 0, -1):
             # Perform inverse operation to shift rows
             data = self.inv_shift_rows(data)
             # Perform inverse operation to sub bytes
             data = self.inv_sub_bytes_16B(data)
             # Add round key in by current round
-            key = expanded_key[current_round*self.Nb:current_round*self.Nb+self.Nb]
+            key = expanded_key[current_round * self.Nb:current_round * self.Nb + self.Nb]
             data = self.add_round_key(data, key)
             # Inverse to mix columns
             data = self.inv_mix_colums(data)
@@ -465,21 +476,88 @@ class AES128:
         return data
 
 
-def test():
+def main(args):
+    # Check if user gave us key, if not, use default key instead
+    if args.key is None:
+        logging.warning("KEY IS REQUIRED -> USING DEFAULT KEY: \"josefvencasladek\"")
+        #print("WARNING: KEY IS REQUIRED -> USING DEFAULT KEY: \"josefvencasladek\"", file=sys.stderr)
+        args.key = "josefvencasladek"
+
+    # Initialize AES128
     a = AES128()
-    key = "6a6f73656676656e6361736c6164656b"
-    key_binary = a.parse_key(key)
+
+    # Transform key into hex string and check its validity (length)
+    try:
+        key_bytes = args.key.encode("ascii")
+        key_hex = str(binascii.hexlify(key_bytes), encoding="ascii")
+    except UnicodeEncodeError:
+        logging.error("NON ASCII KEYS ARE NOT SUPPORTED")
+        #print("ERROR: NON ASCII KEYS ARE NOT SUPPORTED", file=sys.stderr)
+        sys.exit(-1)
+
+    # Pre-check key
+    key_check = bytearray.fromhex(key_hex)
+    key_check_len = len(key_check)
+
+    if key_check_len != 16:
+        logging.error("WRONG KEY LENGTH: REQUIRED 128bit got {}bit".format(key_check_len * 8))
+        #print("ERROR: WRONG KEY LENGTH: REQUIRED 128bit got {}bit".format(key_check_len * 8), file=sys.stderr)
+        sys.exit(-2)
+
+    # Attempt to parse KEY
+    key_binary = a.parse_key(key_hex)
+
+    # Check if key was parsed correctly
+    if key_binary is None:
+        logging.error("UNABLE TO PARSE KEY: " + args.key)
+        #print("ERROR: UNABLE TO PARSE KEY: " + args.key, file=sys.stderr)
+        sys.exit(-3)
+
+    # Expand key
     key_expanded = a.expand_key(key_binary)
 
-    data_hex = "4142434445464748494a4b4c4d4e4f50"
-    data = a.parse_data_16(bytearray.fromhex(data_hex))
-    ciphered = a.cipher(key_expanded, data)
+    # Flush stdout before we switch to use it
+    sys.stdout.flush()
 
-    decipher_test = a.decipher(key_expanded, ciphered)
+    # Read binary data from STDIN - Read 16 bytes from user/pipe
+    user_data = sys.stdin.buffer.read(16)
+    while len(user_data) > 0:
+        # Take 16 byte and transfer it to algorithm readable data
+        data = a.parse_data_16(user_data)
 
-    print(data)
-    print(decipher_test)
+        # If user requested encryption encrypt, if not decrypt
+        if args.encrypt:
+            processed = a.cipher(key_expanded, data)
+        else:
+            processed = a.decipher(key_expanded, data)
+
+        # Print processed data
+        for block in processed:
+            for byte in block:
+                hex_string = "{0:0{1}x}".format(byte, 2)
+                sys.stdout.write(hex_string + " ")
+
+        # Flush buffer
+        sys.stdout.flush()
+
+        # Read another 16 byte of data from user/pipe
+        user_data = sys.stdin.buffer.read(16)
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-e", "--encrypt", action="store_true", help="Flags program to encrypt input data",
+                        default=True, dest="encrypt")
+    parser.add_argument("-d", "--decrypt", action="store_false", help="Flags program to decrypt input data",
+                        default=True, dest="encrypt")
+    parser.add_argument("-k", "--key", help="AES128 key", dest="key")
+    return parser.parse_args()
+
+
+def setup_logging():
+    logging.basicConfig(filename='aes.log', filemode="w", level=logging.DEBUG)
 
 
 if __name__ == '__main__':
-    test()
+    setup_logging()
+    args = parse_args()
+    main(args)
