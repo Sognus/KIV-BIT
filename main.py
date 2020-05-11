@@ -686,11 +686,6 @@ def setup_logging():
 
 
 if __name__ == '__main__':
-    # a = AES128()
-    # print(hex(a.galois_lookup(0xAF, 0x08)))
-    # import sys
-    # sys.exit(0)
-
     setup_logging()
     args = parse_args()
     main(args)
